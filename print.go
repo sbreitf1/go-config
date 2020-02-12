@@ -22,7 +22,7 @@ type printLine struct {
 }
 
 func Print(prefix string, conf interface{}) error {
-	str, err := Sprint(prefix, conf)
+	str, err := ToString(prefix, conf)
 	if err != nil {
 		return err
 	}
@@ -30,10 +30,18 @@ func Print(prefix string, conf interface{}) error {
 	return err
 }
 
-func Sprint(prefix string, conf interface{}) (string, error) {
+func ToString(prefix string, conf interface{}) (string, error) {
+	lines, err := ToLines(prefix, conf)
+	if err != nil {
+		return "", err
+	}
+	return strings.Join(lines, "\n"), nil
+}
+
+func ToLines(prefix string, conf interface{}) ([]string, error) {
 	lines := make([]printLine, 0)
 	if err := sprint(&lines, prefix, reflect.TypeOf(conf), reflect.ValueOf(conf), nil); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	maxKeyLen := 0
@@ -42,17 +50,13 @@ func Sprint(prefix string, conf interface{}) (string, error) {
 			maxKeyLen = len(l.Key)
 		}
 	}
-	var sb strings.Builder
-	for _, l := range lines {
-		sb.WriteString(l.Key)
-		sb.WriteString(": ")
-		for i := len(l.Key); i < maxKeyLen; i++ {
-			sb.WriteString(" ")
-		}
-		sb.WriteString(fmt.Sprintf("%v", l.Value))
-		sb.WriteString("\n")
+
+	strLines := make([]string, len(lines))
+	for i, l := range lines {
+		//TODO respect print mode
+		strLines[i] = fmt.Sprintf("%s:%s%v", l.Key, strings.Repeat(" ", maxKeyLen-len(l.Key)+1), l.Value)
 	}
-	return strings.TrimRight(sb.String(), "\n"), nil
+	return strLines, nil
 }
 
 func sprint(lines *[]printLine, prefix string, dstType reflect.Type, dstValue reflect.Value, tag *tag) error {
