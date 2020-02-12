@@ -21,28 +21,21 @@ type printLine struct {
 	Tag   *tag
 }
 
+// Print prints the output of ToString with fmt.Println.
 func Print(prefix string, conf interface{}) error {
-	str, err := ToString(prefix, conf)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Println(str)
+	_, err := fmt.Println(ToString(prefix, conf))
 	return err
 }
 
-func ToString(prefix string, conf interface{}) (string, error) {
-	lines, err := ToLines(prefix, conf)
-	if err != nil {
-		return "", err
-	}
-	return strings.Join(lines, "\n"), nil
+// ToString returns the output of ToLines concatenated with "\n".
+func ToString(prefix string, conf interface{}) string {
+	return strings.Join(ToLines(prefix, conf), "\n")
 }
 
-func ToLines(prefix string, conf interface{}) ([]string, error) {
+// ToLines returns a line for every configuration value with equal indentation of all values.
+func ToLines(prefix string, conf interface{}) []string {
 	lines := make([]printLine, 0)
-	if err := sprint(&lines, prefix, reflect.TypeOf(conf), reflect.ValueOf(conf), nil); err != nil {
-		return nil, err
-	}
+	sprint(&lines, prefix, reflect.TypeOf(conf), reflect.ValueOf(conf), nil)
 
 	maxKeyLen := 0
 	for _, l := range lines {
@@ -56,37 +49,32 @@ func ToLines(prefix string, conf interface{}) ([]string, error) {
 		//TODO respect print mode
 		strLines[i] = fmt.Sprintf("%s:%s%v", l.Key, strings.Repeat(" ", maxKeyLen-len(l.Key)+1), l.Value)
 	}
-	return strLines, nil
+	return strLines
 }
 
-func sprint(lines *[]printLine, prefix string, dstType reflect.Type, dstValue reflect.Value, tag *tag) error {
+func sprint(lines *[]printLine, prefix string, dstType reflect.Type, dstValue reflect.Value, tag *tag) {
 	//TODO correctly handle print mode inheritance from tag
 
 	switch dstType.Kind() {
 	case reflect.Ptr:
-		return sprint(lines, prefix, dstType.Elem(), dstValue.Elem(), tag)
+		sprint(lines, prefix, dstType.Elem(), dstValue.Elem(), tag)
 
 	case reflect.Struct:
-		return sprintStruct(lines, prefix, dstType, dstValue, nil)
+		sprintStruct(lines, prefix, dstType, dstValue, nil)
 
 	default:
 		*lines = append(*lines, printLine{prefix, dstValue.Interface(), tag})
-		return nil
-		//return fmt.Errorf("type %s not supported", dstType.Kind())
 	}
 }
 
-func sprintStruct(lines *[]printLine, prefix string, dstType reflect.Type, dstValue reflect.Value, tag *tag) error {
+func sprintStruct(lines *[]printLine, prefix string, dstType reflect.Type, dstValue reflect.Value, tag *tag) {
 	fieldCount := dstType.NumField()
 	for i := 0; i < fieldCount; i++ {
 		field := dstType.Field(i)
 		tag := getTag(field)
 
 		if tag.PrintMode != printModeNone {
-			if err := sprint(lines, prefix+"."+tag.PrintName, field.Type, dstValue.Field(i), &tag); err != nil {
-				return err
-			}
+			sprint(lines, prefix+"."+tag.PrintName, field.Type, dstValue.Field(i), &tag)
 		}
 	}
-	return nil
 }
