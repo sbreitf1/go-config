@@ -8,6 +8,10 @@ import (
 	"strings"
 )
 
+const (
+	envSeparator = "_"
+)
+
 var (
 	lookupEnv = os.LookupEnv
 	boolMap   = make(map[string]bool)
@@ -44,6 +48,11 @@ func fromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value
 	case reflect.Struct:
 		return structFromEnvironment(prefix, dstType, dstValue)
 
+	case reflect.Slice:
+		return sliceFromEnvironment(prefix, dstType, dstValue)
+	case reflect.Array:
+		return arrayFromEnvironment(prefix, dstType, dstValue)
+
 	case reflect.String:
 		return stringFromEnvironment(prefix, dstType, dstValue)
 	case reflect.Bool:
@@ -63,10 +72,38 @@ func structFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect
 		field := dstType.Field(i)
 		tag := getTag(field)
 
-		if err := fromEnvironment(prefix+"_"+strings.ToUpper(tag.EnvName), field.Type, dstValue.Field(i)); err != nil {
+		if err := fromEnvironment(prefix+envSeparator+strings.ToUpper(tag.EnvName), field.Type, dstValue.Field(i)); err != nil {
 			return err
 		}
 	}
+	return nil
+}
+
+func sliceFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value) error {
+	numStrVal, ok := lookupEnv(prefix + envSeparator + "NUM")
+	if !ok || len(numStrVal) == 0 {
+		return nil
+	}
+
+	num, err := strconv.Atoi(numStrVal)
+	if err != nil {
+		return fmt.Errorf("failed to parse list length for %s", prefix)
+	}
+
+	dstValue.Set(reflect.MakeSlice(dstType, num, num))
+	for i := 0; i < num; i++ {
+		fromEnvironment(prefix+envSeparator+strconv.Itoa(i), dstValue.Index(i).Type(), dstValue.Index(i))
+	}
+
+	return nil
+}
+
+func arrayFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value) error {
+	len := dstValue.Len()
+	for i := 0; i < len; i++ {
+		fromEnvironment(prefix+envSeparator+strconv.Itoa(i), dstValue.Index(i).Type(), dstValue.Index(i))
+	}
+
 	return nil
 }
 

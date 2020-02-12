@@ -24,6 +24,16 @@ type EnvTestName struct {
 	Nested     EnvTestSimple `config:"env:subval"`
 }
 
+type EnvTestSlice struct {
+	EmptyList  []int
+	List       []string
+	NestedList []EnvTestSimple
+}
+
+type EnvTestArray struct {
+	List [3]string
+}
+
 func TestEnvEmpty(t *testing.T) {
 	withMockEnv(func(env map[string]string) {
 		var conf EnvTestSimple
@@ -102,6 +112,41 @@ func TestEnvName(t *testing.T) {
 			assert.Equal(t, 42, conf.Nested.IntData)
 			assert.True(t, conf.Nested.BoolDataT)
 			assert.False(t, conf.Nested.BoolDataF)
+		}
+	})
+}
+
+func TestEnvSlice(t *testing.T) {
+	withMockEnv(func(env map[string]string) {
+		env["TEST_EMPTYLIST_NUM"] = "0"
+		env["TEST_LIST_NUM"] = "3"
+		env["TEST_LIST_0"] = "foo"
+		env["TEST_LIST_1"] = "bar"
+		env["TEST_LIST_2"] = "42"
+		env["TEST_NESTEDLIST_NUM"] = "1"
+		env["TEST_NESTEDLIST_0_STRINGDATA"] = "foobar"
+		env["TEST_NESTEDLIST_0_INTDATA"] = "42"
+		env["TEST_NESTEDLIST_0_BOOLDATAT"] = "true"
+		env["TEST_NESTEDLIST_0_BOOLDATAF"] = "false"
+
+		var conf EnvTestSlice
+		if assert.NoError(t, FromEnvironment("test", &conf)) {
+			assert.Equal(t, []int{}, conf.EmptyList)
+			assert.Equal(t, []string{"foo", "bar", "42"}, conf.List)
+			assert.Equal(t, []EnvTestSimple{EnvTestSimple{"foobar", 42, true, false}}, conf.NestedList)
+		}
+	})
+}
+
+func TestEnvArray(t *testing.T) {
+	withMockEnv(func(env map[string]string) {
+		env["TEST_LIST_0"] = "foo"
+		env["TEST_LIST_1"] = "bar"
+		env["TEST_LIST_2"] = "42"
+
+		var conf EnvTestArray
+		if assert.NoError(t, FromEnvironment("test", &conf)) {
+			assert.Equal(t, [3]string{"foo", "bar", "42"}, conf.List)
 		}
 	})
 }
