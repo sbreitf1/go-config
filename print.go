@@ -72,9 +72,12 @@ func sprintStruct(lines *[]printLine, prefix string, dstType reflect.Type, dstVa
 	for i := 0; i < fieldCount; i++ {
 		field := dstType.Field(i)
 		tag := getTag(field)
+		val := dstValue.Field(i)
 
-		if tag.PrintMode != printModeNone {
-			sprint(lines, prefix+"."+tag.PrintName, field.Type, dstValue.Field(i), &tag)
+		if val.CanInterface() {
+			if tag.PrintMode != printModeNone {
+				sprint(lines, prefix+"."+tag.PrintName, field.Type, val, &tag)
+			}
 		}
 	}
 }

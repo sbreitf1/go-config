@@ -34,7 +34,12 @@ func init() {
 
 // FromEnvironment reads all values from environment variables.
 func FromEnvironment(prefix string, conf interface{}) error {
-	return fromEnvironment(strings.ToUpper(prefix), reflect.TypeOf(conf), reflect.ValueOf(conf))
+	t := reflect.TypeOf(conf)
+	v := reflect.ValueOf(conf)
+	if !v.CanSet() && !(v.Kind() == reflect.Ptr && v.Elem().CanSet()) {
+		return fmt.Errorf("conf must be an assignable value")
+	}
+	return fromEnvironment(strings.ToUpper(prefix), t, v)
 }
 
 func fromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value) error {
@@ -71,9 +76,12 @@ func structFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect
 	for i := 0; i < fieldCount; i++ {
 		field := dstType.Field(i)
 		tag := getTag(field)
+		val := dstValue.Field(i)
 
-		if err := fromEnvironment(prefix+envSeparator+strings.ToUpper(tag.EnvName), field.Type, dstValue.Field(i)); err != nil {
-			return err
+		if val.CanSet() {
+			if err := fromEnvironment(prefix+envSeparator+strings.ToUpper(tag.EnvName), field.Type, dstValue.Field(i)); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

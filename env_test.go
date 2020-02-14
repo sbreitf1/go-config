@@ -13,6 +13,11 @@ type EnvTestSimple struct {
 	BoolDataF  bool
 }
 
+type EnvTestPrivate struct {
+	Public  string
+	private string
+}
+
 type EnvTestNested struct {
 	OuterString string
 	NestedValue EnvTestSimple
@@ -32,6 +37,23 @@ type EnvTestSlice struct {
 
 type EnvTestArray struct {
 	List [3]string
+}
+
+func TestEnvNoPointer(t *testing.T) {
+	withMockEnv(func(env map[string]string) {
+		env["TEST_STRINGDATA"] = "foobar"
+		env["TEST_INTDATA"] = "42"
+		env["TEST_BOOLDATAT"] = "true"
+		env["TEST_BOOLDATAF"] = "false"
+
+		var conf EnvTestSimple
+		if assert.Error(t, FromEnvironment("test", conf)) {
+			assert.Equal(t, "", conf.StringData)
+			assert.Equal(t, 0, conf.IntData)
+			assert.False(t, conf.BoolDataT)
+			assert.False(t, conf.BoolDataF)
+		}
+	})
 }
 
 func TestEnvEmpty(t *testing.T) {
@@ -73,6 +95,18 @@ func TestEnvInvalidBool(t *testing.T) {
 
 		var conf EnvTestSimple
 		assert.Error(t, FromEnvironment("test", &conf))
+	})
+}
+
+func TestEnvPrivate(t *testing.T) {
+	withMockEnv(func(env map[string]string) {
+		env["TEST_PUBLIC"] = "foobar"
+		env["TEST_PRIVATE"] = "should not be used"
+
+		conf := EnvTestPrivate{"", "keep it"}
+		assert.NoError(t, FromEnvironment("test", &conf))
+		assert.Equal(t, "foobar", conf.Public)
+		assert.Equal(t, "keep it", conf.private)
 	})
 }
 
