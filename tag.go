@@ -7,11 +7,13 @@ import (
 )
 
 type tag struct {
-	FieldName string
-	Required  bool
-	PrintMode printMode
-	PrintName string
-	EnvName   string
+	FieldName  string
+	Required   bool
+	PrintMode  printMode
+	PrintName  string
+	EnvName    string
+	Default    string
+	HasDefault bool
 }
 
 func getTag(field reflect.StructField) tag {
@@ -44,6 +46,11 @@ func getTag(field reflect.StructField) tag {
 						if setPrintOptions(parts, &tag) {
 							continue
 						}
+
+					case "default":
+						tag.Default = parts[1]
+						tag.HasDefault = true
+						continue
 					}
 				}
 

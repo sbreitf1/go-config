@@ -19,6 +19,7 @@ type TagTest struct {
 	MaskedPrintName interface{} `config:"print:OtherName:[mask]"`
 	HashedPrintName interface{} `config:"print:OtherName:[sha256]"`
 	PrintName       interface{} `config:"print:VisibleName"`
+	Default         interface{} `config:"default:some str"`
 }
 
 type tagTestCase struct {
@@ -27,16 +28,17 @@ type tagTestCase struct {
 }
 
 var tagTestCases = []tagTestCase{
-	tagTestCase{"None", tag{"None", false, printModeDefault, "None", "None"}},
-	tagTestCase{"Empty", tag{"Empty", false, printModeDefault, "Empty", "Empty"}},
-	tagTestCase{"Flags", tag{"Flags", true, printModeDefault, "Flags", "Flags"}},
-	tagTestCase{"EnvName", tag{"EnvName", false, printModeDefault, "EnvName", "SomeNewName"}},
-	tagTestCase{"NoPrint", tag{"NoPrint", false, printModeNone, "", "NoPrint"}},
-	tagTestCase{"MaskedPrint", tag{"MaskedPrint", false, printModeMasked, "MaskedPrint", "MaskedPrint"}},
-	tagTestCase{"HashedPrint", tag{"HashedPrint", false, printModeSHA256, "HashedPrint", "HashedPrint"}},
-	tagTestCase{"MaskedPrintName", tag{"MaskedPrintName", false, printModeMasked, "OtherName", "MaskedPrintName"}},
-	tagTestCase{"HashedPrintName", tag{"HashedPrintName", false, printModeSHA256, "OtherName", "HashedPrintName"}},
-	tagTestCase{"PrintName", tag{"PrintName", false, printModeDefault, "VisibleName", "PrintName"}},
+	tagTestCase{"None", tag{"None", false, printModeDefault, "None", "None", "", false}},
+	tagTestCase{"Empty", tag{"Empty", false, printModeDefault, "Empty", "Empty", "", false}},
+	tagTestCase{"Flags", tag{"Flags", true, printModeDefault, "Flags", "Flags", "", false}},
+	tagTestCase{"EnvName", tag{"EnvName", false, printModeDefault, "EnvName", "SomeNewName", "", false}},
+	tagTestCase{"NoPrint", tag{"NoPrint", false, printModeNone, "", "NoPrint", "", false}},
+	tagTestCase{"MaskedPrint", tag{"MaskedPrint", false, printModeMasked, "MaskedPrint", "MaskedPrint", "", false}},
+	tagTestCase{"HashedPrint", tag{"HashedPrint", false, printModeSHA256, "HashedPrint", "HashedPrint", "", false}},
+	tagTestCase{"MaskedPrintName", tag{"MaskedPrintName", false, printModeMasked, "OtherName", "MaskedPrintName", "", false}},
+	tagTestCase{"HashedPrintName", tag{"HashedPrintName", false, printModeSHA256, "OtherName", "HashedPrintName", "", false}},
+	tagTestCase{"PrintName", tag{"PrintName", false, printModeDefault, "VisibleName", "PrintName", "", false}},
+	tagTestCase{"Default", tag{"Default", false, printModeDefault, "Default", "Default", "some str", true}},
 }
 
 func TestTags(t *testing.T) {

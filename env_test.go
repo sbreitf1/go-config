@@ -18,6 +18,13 @@ type EnvTestPrivate struct {
 	private string
 }
 
+type EnvTestDefault struct {
+	StringData string `config:"default:foobar"`
+	IntData    int    `config:"default:42"`
+	BoolDataT  bool   `config:"default:true"`
+	BoolDataF  bool   `config:"default:false"`
+}
+
 type EnvTestNested struct {
 	OuterString string
 	NestedValue EnvTestSimple
@@ -107,6 +114,35 @@ func TestEnvPrivate(t *testing.T) {
 		assert.NoError(t, FromEnvironment("test", &conf))
 		assert.Equal(t, "foobar", conf.Public)
 		assert.Equal(t, "keep it", conf.private)
+	})
+}
+
+func TestEnvDefault(t *testing.T) {
+	withMockEnv(func(env map[string]string) {
+		var conf EnvTestDefault
+		if assert.NoError(t, FromEnvironment("test", &conf)) {
+			assert.Equal(t, "foobar", conf.StringData)
+			assert.Equal(t, 42, conf.IntData)
+			assert.True(t, conf.BoolDataT)
+			assert.False(t, conf.BoolDataF)
+		}
+	})
+}
+
+func TestEnvDefaultOverride(t *testing.T) {
+	withMockEnv(func(env map[string]string) {
+		env["TEST_STRINGDATA"] = "NEW STR"
+		env["TEST_INTDATA"] = "1337"
+		env["TEST_BOOLDATAT"] = "false"
+		env["TEST_BOOLDATAF"] = "true"
+
+		var conf EnvTestDefault
+		if assert.NoError(t, FromEnvironment("test", &conf)) {
+			assert.Equal(t, "NEW STR", conf.StringData)
+			assert.Equal(t, 1337, conf.IntData)
+			assert.False(t, conf.BoolDataT)
+			assert.True(t, conf.BoolDataF)
+		}
 	})
 }
 

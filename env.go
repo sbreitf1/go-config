@@ -39,16 +39,16 @@ func FromEnvironment(prefix string, conf interface{}) error {
 	if !v.CanSet() && !(v.Kind() == reflect.Ptr && v.Elem().CanSet()) {
 		return fmt.Errorf("conf must be an assignable value")
 	}
-	return fromEnvironment(strings.ToUpper(prefix), t, v)
+	return fromEnvironment(strings.ToUpper(prefix), t, v, nil)
 }
 
-func fromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value) error {
+func fromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value, tag *tag) error {
 	//TODO advanced types like time.Time and time.Duration
 	//TODO custom types with interfaces
 
 	switch dstType.Kind() {
 	case reflect.Ptr:
-		return fromEnvironment(prefix, dstType.Elem(), dstValue.Elem())
+		return fromEnvironment(prefix, dstType.Elem(), dstValue.Elem(), tag)
 
 	case reflect.Struct:
 		return structFromEnvironment(prefix, dstType, dstValue)
@@ -59,11 +59,11 @@ func fromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value
 		return arrayFromEnvironment(prefix, dstType, dstValue)
 
 	case reflect.String:
-		return stringFromEnvironment(prefix, dstType, dstValue)
+		return stringFromEnvironment(prefix, dstType, dstValue, tag)
 	case reflect.Bool:
-		return boolFromEnvironment(prefix, dstType, dstValue)
+		return boolFromEnvironment(prefix, dstType, dstValue, tag)
 	case reflect.Int:
-		return intFromEnvironment(prefix, dstType, dstValue)
+		return intFromEnvironment(prefix, dstType, dstValue, tag)
 
 	default:
 		// just ignore unsupported types
@@ -79,7 +79,7 @@ func structFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect
 		val := dstValue.Field(i)
 
 		if val.CanSet() {
-			if err := fromEnvironment(prefix+envSeparator+strings.ToUpper(tag.EnvName), field.Type, dstValue.Field(i)); err != nil {
+			if err := fromEnvironment(prefix+envSeparator+strings.ToUpper(tag.EnvName), field.Type, dstValue.Field(i), &tag); err != nil {
 				return err
 			}
 		}
@@ -100,7 +100,7 @@ func sliceFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.
 
 	dstValue.Set(reflect.MakeSlice(dstType, num, num))
 	for i := 0; i < num; i++ {
-		fromEnvironment(prefix+envSeparator+strconv.Itoa(i), dstValue.Index(i).Type(), dstValue.Index(i))
+		fromEnvironment(prefix+envSeparator+strconv.Itoa(i), dstValue.Index(i).Type(), dstValue.Index(i), nil)
 	}
 
 	return nil
@@ -109,21 +109,21 @@ func sliceFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.
 func arrayFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value) error {
 	len := dstValue.Len()
 	for i := 0; i < len; i++ {
-		fromEnvironment(prefix+envSeparator+strconv.Itoa(i), dstValue.Index(i).Type(), dstValue.Index(i))
+		fromEnvironment(prefix+envSeparator+strconv.Itoa(i), dstValue.Index(i).Type(), dstValue.Index(i), nil)
 	}
 
 	return nil
 }
 
-func stringFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value) error {
-	if strVal, ok := lookupEnv(prefix); ok {
+func stringFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value, tag *tag) error {
+	if strVal, ok := fromEnvOrDefault(prefix, tag); ok {
 		dstValue.SetString(strVal)
 	}
 	return nil
 }
 
-func boolFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value) error {
-	if strVal, ok := lookupEnv(prefix); ok {
+func boolFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value, tag *tag) error {
+	if strVal, ok := fromEnvOrDefault(prefix, tag); ok {
 		val, ok := boolMap[strVal]
 		if !ok {
 			return fmt.Errorf("cannot parse bool from %q", strVal)
@@ -133,8 +133,8 @@ func boolFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.V
 	return nil
 }
 
-func intFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value) error {
-	if strVal, ok := lookupEnv(prefix); ok {
+func intFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value, tag *tag) error {
+	if strVal, ok := fromEnvOrDefault(prefix, tag); ok {
 		val, err := strconv.Atoi(strVal)
 		if err != nil {
 			return err
@@ -142,4 +142,17 @@ func intFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Va
 		dstValue.SetInt(int64(val))
 	}
 	return nil
+}
+
+func fromEnvOrDefault(key string, tag *tag) (string, bool) {
+	// explicit configuration from environment has highest priority
+	if strVal, ok := lookupEnv(key); ok {
+		return strVal, true
+	}
+	// no env available? try default value
+	if tag.HasDefault {
+		return tag.Default, true
+	}
+	// is not configured at all
+	return "", false
 }
