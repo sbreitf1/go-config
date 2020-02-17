@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type pathPrefix []interface{}
@@ -176,6 +177,31 @@ func (obj *object) SetIntFromString(strVal string) error {
 		return fmt.Errorf("cannot parse int from %q", strVal)
 	}
 	obj.v.SetInt(int64(val))
+	return nil
+}
+
+func (obj *object) SetDateTimeFromString(strVal string) error {
+	dt, err := func() (time.Time, error) {
+		strVal = strings.Replace(strVal, " ", "T", -1)
+		switch len(strVal) {
+		case 10:
+			return time.ParseInLocation("2006-01-02", strVal, time.Local)
+		case 19:
+			return time.ParseInLocation("2006-01-02T15:04:05", strVal, time.Local)
+		case 20:
+			return time.ParseInLocation("2006-01-02T15:04:05Z", strVal, time.UTC)
+		case 24:
+			return time.ParseInLocation("2006-01-02T15:04:05-0700", strVal, time.UTC)
+		case 25:
+			return time.ParseInLocation("2006-01-02T15:04:05-0700", strVal[:22]+strVal[23:], time.UTC)
+		}
+		return time.Time{}, fmt.Errorf("invalid format")
+	}()
+	if err != nil {
+		return fmt.Errorf("cannot parse datetime from %q", strVal)
+	}
+
+	obj.v.Set(reflect.ValueOf(dt))
 	return nil
 }
 

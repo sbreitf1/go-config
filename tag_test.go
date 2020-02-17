@@ -9,17 +9,18 @@ import (
 )
 
 type TagTest struct {
-	None            interface{}
-	Empty           interface{} `config:""`
-	Flags           interface{} `config:"required"`
-	EnvName         interface{} `config:"env:SomeNewName"`
-	NoPrint         interface{} `config:"print:-"`
-	MaskedPrint     interface{} `config:"print:[mask]"`
-	HashedPrint     interface{} `config:"print:[sha256]"`
-	MaskedPrintName interface{} `config:"print:OtherName:[mask]"`
-	HashedPrintName interface{} `config:"print:OtherName:[sha256]"`
-	PrintName       interface{} `config:"print:VisibleName"`
-	Default         interface{} `config:"default:some str"`
+	None             interface{}
+	Empty            interface{} `config:""`
+	Flags            interface{} `config:"required"`
+	EnvName          interface{} `config:"env:SomeNewName"`
+	NoPrint          interface{} `config:"print:-"`
+	MaskedPrint      interface{} `config:"print:[mask]"`
+	HashedPrint      interface{} `config:"print:[sha256]"`
+	MaskedPrintName  interface{} `config:"print:OtherName:[mask]"`
+	HashedPrintName  interface{} `config:"print:OtherName:[sha256]"`
+	PrintName        interface{} `config:"print:VisibleName"`
+	Default          interface{} `config:"default:some str"`
+	DefaultWithColon interface{} `config:"default:some:nice:str"`
 }
 
 type tagTestCase struct {
@@ -39,6 +40,7 @@ var tagTestCases = []tagTestCase{
 	tagTestCase{"HashedPrintName", tag{"HashedPrintName", false, printModeSHA256, "OtherName", "HashedPrintName", "", false}},
 	tagTestCase{"PrintName", tag{"PrintName", false, printModeDefault, "VisibleName", "PrintName", "", false}},
 	tagTestCase{"Default", tag{"Default", false, printModeDefault, "Default", "Default", "some str", true}},
+	tagTestCase{"DefaultWithColon", tag{"DefaultWithColon", false, printModeDefault, "DefaultWithColon", "DefaultWithColon", "some:nice:str", true}},
 }
 
 func TestTags(t *testing.T) {

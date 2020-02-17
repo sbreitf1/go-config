@@ -48,7 +48,7 @@ func getTag(field reflect.StructField) tag {
 						}
 
 					case "default":
-						tag.Default = parts[1]
+						tag.Default = strings.Join(parts[1:], ":")
 						tag.HasDefault = true
 						continue
 					}

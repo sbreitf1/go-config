@@ -5,10 +5,13 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"time"
 )
 
 var (
 	lookupEnv = os.LookupEnv
+
+	typeDateTime = reflect.TypeOf(time.Time{})
 )
 
 // FromEnvironment reads all values from environment variables.
@@ -23,6 +26,10 @@ func FromEnvironment(prefix string, conf interface{}) error {
 func fromEnvironment(prefix pathPrefix, dst *object, tag *tag) error {
 	//TODO advanced types like time.Time and time.Duration
 	//TODO custom types with interfaces
+
+	if dst.t.ConvertibleTo(typeDateTime) {
+		return dateTimeFromEnvironment(prefix, dst, tag)
+	}
 
 	switch dst.Kind() {
 	case reflect.Ptr:
@@ -91,6 +98,10 @@ func boolFromEnvironment(prefix pathPrefix, dst *object, tag *tag) error {
 
 func intFromEnvironment(prefix pathPrefix, dst *object, tag *tag) error {
 	return assignFromEnvOrDefault(prefix, dst.SetIntFromString, tag)
+}
+
+func dateTimeFromEnvironment(prefix pathPrefix, dst *object, tag *tag) error {
+	return assignFromEnvOrDefault(prefix, dst.SetDateTimeFromString, tag)
 }
 
 func assignFromEnvOrDefault(prefix pathPrefix, assignHandler func(string) error, tag *tag) error {

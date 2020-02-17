@@ -2,6 +2,7 @@ package config
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -11,39 +12,6 @@ type EnvTestSimple struct {
 	IntData    int
 	BoolDataT  bool
 	BoolDataF  bool
-}
-
-type EnvTestPrivate struct {
-	Public  string
-	private string
-}
-
-type EnvTestDefault struct {
-	StringData string `config:"default:foobar"`
-	IntData    int    `config:"default:42"`
-	BoolDataT  bool   `config:"default:true"`
-	BoolDataF  bool   `config:"default:false"`
-}
-
-type EnvTestNested struct {
-	OuterString string
-	NestedValue EnvTestSimple
-}
-
-type EnvTestName struct {
-	StringData string        `config:"env:str"`
-	IntData    int           `config:"env:number"`
-	Nested     EnvTestSimple `config:"env:subval"`
-}
-
-type EnvTestSlice struct {
-	EmptyList  []int
-	List       []string
-	NestedList []EnvTestSimple
-}
-
-type EnvTestArray struct {
-	List [3]string
 }
 
 func TestEnvNoPointer(t *testing.T) {
@@ -105,6 +73,11 @@ func TestEnvInvalidBool(t *testing.T) {
 	})
 }
 
+type EnvTestPrivate struct {
+	Public  string
+	private string
+}
+
 func TestEnvPrivate(t *testing.T) {
 	withMockEnv(func(env map[string]string) {
 		env["TEST_PUBLIC"] = "foobar"
@@ -115,6 +88,13 @@ func TestEnvPrivate(t *testing.T) {
 		assert.Equal(t, "foobar", conf.Public)
 		assert.Equal(t, "keep it", conf.private)
 	})
+}
+
+type EnvTestDefault struct {
+	StringData string `config:"default:foobar"`
+	IntData    int    `config:"default:42"`
+	BoolDataT  bool   `config:"default:true"`
+	BoolDataF  bool   `config:"default:false"`
 }
 
 func TestEnvDefault(t *testing.T) {
@@ -146,6 +126,11 @@ func TestEnvDefaultOverride(t *testing.T) {
 	})
 }
 
+type EnvTestNested struct {
+	OuterString string
+	NestedValue EnvTestSimple
+}
+
 func TestEnvNested(t *testing.T) {
 	withMockEnv(func(env map[string]string) {
 		env["TEST_OUTERSTRING"] = "test"
@@ -163,6 +148,12 @@ func TestEnvNested(t *testing.T) {
 			assert.False(t, conf.NestedValue.BoolDataF)
 		}
 	})
+}
+
+type EnvTestName struct {
+	StringData string        `config:"env:str"`
+	IntData    int           `config:"env:number"`
+	Nested     EnvTestSimple `config:"env:subval"`
 }
 
 func TestEnvName(t *testing.T) {
@@ -184,6 +175,12 @@ func TestEnvName(t *testing.T) {
 			assert.False(t, conf.Nested.BoolDataF)
 		}
 	})
+}
+
+type EnvTestSlice struct {
+	EmptyList  []int
+	List       []string
+	NestedList []EnvTestSimple
 }
 
 func TestEnvSlice(t *testing.T) {
@@ -208,6 +205,10 @@ func TestEnvSlice(t *testing.T) {
 	})
 }
 
+type EnvTestArray struct {
+	List [3]string
+}
+
 func TestEnvArray(t *testing.T) {
 	withMockEnv(func(env map[string]string) {
 		env["TEST_LIST_0"] = "foo"
@@ -217,6 +218,39 @@ func TestEnvArray(t *testing.T) {
 		var conf EnvTestArray
 		if assert.NoError(t, FromEnvironment("test", &conf)) {
 			assert.Equal(t, [3]string{"foo", "bar", "42"}, conf.List)
+		}
+	})
+}
+
+type EnvTestDateTime struct {
+	Val                  time.Time
+	Default              time.Time `config:"default:2020-02-17 09:06:21"`
+	DefaultDay           time.Time `config:"default:2020-02-17"`
+	DefaultUTC           time.Time `config:"default:2020-02-17T09:06:21Z"`
+	DefaultShortTimeZone time.Time `config:"default:2020-02-17 07:06:21+0100"`
+	DefaultTimeZone      time.Time `config:"default:2020-02-17 09:06:21+01:00"`
+}
+
+func TestEnvDateTime(t *testing.T) {
+	withMockEnv(func(env map[string]string) {
+		env["TEST_VAL"] = "2020-02-17T09:08:42"
+
+		var conf EnvTestDateTime
+		if assert.NoError(t, FromEnvironment("test", &conf)) {
+			assert.Equal(t, time.Date(2020, time.February, 17, 9, 8, 42, 0, time.Local), conf.Val)
+			assert.Equal(t, time.Date(2020, time.February, 17, 9, 6, 21, 0, time.Local), conf.Default)
+			assert.Equal(t, time.Date(2020, time.February, 17, 0, 0, 0, 0, time.Local), conf.DefaultDay)
+			assert.Equal(t, time.Date(2020, time.February, 17, 9, 6, 21, 0, time.UTC), conf.DefaultUTC)
+
+			// check hour in given time zone utc+1 (7)
+			assert.Equal(t, 7, conf.DefaultShortTimeZone.Hour())
+			// in UTC it must be 6
+			assert.Equal(t, time.Date(2020, time.February, 17, 6, 6, 21, 0, time.UTC), conf.DefaultShortTimeZone.UTC())
+
+			// check hour in given time zone utc+1 (9)
+			assert.Equal(t, 9, conf.DefaultTimeZone.Hour())
+			// in UTC it must be 8
+			assert.Equal(t, time.Date(2020, time.February, 17, 8, 6, 21, 0, time.UTC), conf.DefaultTimeZone.UTC())
 		}
 	})
 }
