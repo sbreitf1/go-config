@@ -237,20 +237,59 @@ func TestEnvDateTime(t *testing.T) {
 
 		var conf EnvTestDateTime
 		if assert.NoError(t, FromEnvironment("test", &conf)) {
-			assert.Equal(t, time.Date(2020, time.February, 17, 9, 8, 42, 0, time.Local), conf.Val)
-			assert.Equal(t, time.Date(2020, time.February, 17, 9, 6, 21, 0, time.Local), conf.Default)
-			assert.Equal(t, time.Date(2020, time.February, 17, 0, 0, 0, 0, time.Local), conf.DefaultDay)
-			assert.Equal(t, time.Date(2020, time.February, 17, 9, 6, 21, 0, time.UTC), conf.DefaultUTC)
+			assert.Equal(t, time.Date(2020, time.February, 17, 9, 8, 42, 0, time.Local), conf.Val, "conf.Val")
+			assert.Equal(t, time.Date(2020, time.February, 17, 9, 6, 21, 0, time.Local), conf.Default, "conf.Default")
+			assert.Equal(t, time.Date(2020, time.February, 17, 0, 0, 0, 0, time.Local), conf.DefaultDay, "conf.DefaultDay")
+			assert.Equal(t, time.Date(2020, time.February, 17, 9, 6, 21, 0, time.UTC), conf.DefaultUTC, "conf.DefaultUTC")
 
 			// check hour in given time zone utc+1 (7)
 			assert.Equal(t, 7, conf.DefaultShortTimeZone.Hour())
 			// in UTC it must be 6
-			assert.Equal(t, time.Date(2020, time.February, 17, 6, 6, 21, 0, time.UTC), conf.DefaultShortTimeZone.UTC())
+			assert.Equal(t, time.Date(2020, time.February, 17, 6, 6, 21, 0, time.UTC), conf.DefaultShortTimeZone.UTC(), "conf.DefaultShortTimeZone")
 
 			// check hour in given time zone utc+1 (9)
 			assert.Equal(t, 9, conf.DefaultTimeZone.Hour())
 			// in UTC it must be 8
-			assert.Equal(t, time.Date(2020, time.February, 17, 8, 6, 21, 0, time.UTC), conf.DefaultTimeZone.UTC())
+			assert.Equal(t, time.Date(2020, time.February, 17, 8, 6, 21, 0, time.UTC), conf.DefaultTimeZone.UTC(), "conf.DefaultTimeZone")
+		}
+	})
+}
+
+type EnvTestDuration struct {
+	Val           time.Duration
+	Default       time.Duration `config:"default:P1Y2M3DT4H5M6S"`
+	DefaultYear   time.Duration `config:"default:P1Y"`
+	DefaultMonth  time.Duration `config:"default:P1M"`
+	DefaultWeek   time.Duration `config:"default:P1W"`
+	DefaultDay    time.Duration `config:"default:P1D"`
+	DefaultHour   time.Duration `config:"default:T1H"`
+	DefaultMinute time.Duration `config:"default:T1M"`
+	DefaultSecond time.Duration `config:"default:T1S"`
+}
+
+func TestEnvDuration(t *testing.T) {
+	second := time.Duration(time.Second)
+	minute := time.Duration(time.Minute)
+	hour := time.Duration(time.Hour)
+	day := 24 * hour
+	week := 7 * day
+	month := 30 * day
+	year := 365 * day
+
+	withMockEnv(func(env map[string]string) {
+		env["TEST_VAL"] = "1y 2d 3h 4m 45s"
+
+		var conf EnvTestDuration
+		if assert.NoError(t, FromEnvironment("test", &conf)) {
+			assert.Equal(t, 1*year+2*day+3*hour+4*minute+45*second, conf.Val, "conf.Val")
+			assert.Equal(t, 1*year+2*month+3*day+4*hour+5*minute+6*second, conf.Default, "conf.Default")
+			assert.Equal(t, 1*year, conf.DefaultYear, "conf.DefaultYear")
+			assert.Equal(t, 1*month, conf.DefaultMonth, "conf.DefaultMonth")
+			assert.Equal(t, 1*week, conf.DefaultWeek, "conf.DefaultWeek")
+			assert.Equal(t, 1*day, conf.DefaultDay, "conf.DefaultDay")
+			assert.Equal(t, 1*hour, conf.DefaultHour, "conf.DefaultHour")
+			assert.Equal(t, 1*minute, conf.DefaultMinute, "conf.DefaultMinute")
+			assert.Equal(t, 1*second, conf.DefaultSecond, "conf.DefaultSecond")
 		}
 	})
 }

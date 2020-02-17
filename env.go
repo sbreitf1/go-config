@@ -12,6 +12,7 @@ var (
 	lookupEnv = os.LookupEnv
 
 	typeDateTime = reflect.TypeOf(time.Time{})
+	typeDuration = reflect.TypeOf(time.Duration(0))
 )
 
 // FromEnvironment reads all values from environment variables.
@@ -27,8 +28,11 @@ func fromEnvironment(prefix pathPrefix, dst *object, tag *tag) error {
 	//TODO advanced types like time.Time and time.Duration
 	//TODO custom types with interfaces
 
-	if dst.t.ConvertibleTo(typeDateTime) {
+	if dst.Is(typeDateTime) {
 		return dateTimeFromEnvironment(prefix, dst, tag)
+	}
+	if dst.Is(typeDuration) {
+		return durationFromEnvironment(prefix, dst, tag)
 	}
 
 	switch dst.Kind() {
@@ -102,6 +106,10 @@ func intFromEnvironment(prefix pathPrefix, dst *object, tag *tag) error {
 
 func dateTimeFromEnvironment(prefix pathPrefix, dst *object, tag *tag) error {
 	return assignFromEnvOrDefault(prefix, dst.SetDateTimeFromString, tag)
+}
+
+func durationFromEnvironment(prefix pathPrefix, dst *object, tag *tag) error {
+	return assignFromEnvOrDefault(prefix, dst.SetDurationFromString, tag)
 }
 
 func assignFromEnvOrDefault(prefix pathPrefix, assignHandler func(string) error, tag *tag) error {
