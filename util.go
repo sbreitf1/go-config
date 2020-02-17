@@ -102,6 +102,10 @@ func (obj *object) IsReadable() bool {
 	return obj.v.CanInterface()
 }
 
+func (obj *object) IsNil() bool {
+	return obj.v.IsNil()
+}
+
 func (obj *object) Is(t reflect.Type) bool {
 	return obj.t == t
 }

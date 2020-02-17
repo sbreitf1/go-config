@@ -69,6 +69,9 @@ func setPrintOptions(parts []string, tag *tag) bool {
 			tag.PrintMode = printModeNone
 			tag.PrintName = ""
 
+		case "[len]":
+			tag.PrintMode = printModeLen
+
 		case "[mask]":
 			tag.PrintMode = printModeMasked
 
@@ -84,6 +87,10 @@ func setPrintOptions(parts []string, tag *tag) bool {
 	if len(parts) == 3 {
 		tag.PrintName = parts[1]
 		switch parts[2] {
+		case "[len]":
+			tag.PrintMode = printModeLen
+			return true
+
 		case "[mask]":
 			tag.PrintMode = printModeMasked
 			return true
