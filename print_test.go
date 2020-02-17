@@ -33,6 +33,11 @@ func TestToStringSimple(t *testing.T) {
 	assert.Equal(t, "Stuff.Str:     foobar\nStuff.Number:  42\nStuff.Boolean: true", ToString("Stuff", conf))
 }
 
+func TestToStringSimplePtr(t *testing.T) {
+	conf := PrintTestSimple{"foobar", 42, true}
+	assert.Equal(t, "Stuff.Str:     foobar\nStuff.Number:  42\nStuff.Boolean: true", ToString("Stuff", &conf))
+}
+
 func TestToStringPrivate(t *testing.T) {
 	conf := PrintTestPrivate{"foobar", "unexported"}
 	assert.Equal(t, "Stuff.Public: foobar", ToString("Stuff", conf))

@@ -35,7 +35,7 @@ func ToString(prefix string, conf interface{}) string {
 // ToLines returns a line for every configuration value with equal indentation of all values.
 func ToLines(prefix string, conf interface{}) []string {
 	lines := make([]printLine, 0)
-	sprint(&lines, prefix, reflect.TypeOf(conf), reflect.ValueOf(conf), nil)
+	sprint(&lines, newPathPrefix(prefix), newObject(conf), nil)
 
 	maxKeyLen := 0
 	for _, l := range lines {
@@ -52,32 +52,28 @@ func ToLines(prefix string, conf interface{}) []string {
 	return strLines
 }
 
-func sprint(lines *[]printLine, prefix string, dstType reflect.Type, dstValue reflect.Value, tag *tag) {
+func sprint(lines *[]printLine, prefix pathPrefix, obj *object, tag *tag) {
 	//TODO correctly handle print mode inheritance from tag
 
-	switch dstType.Kind() {
+	switch obj.Kind() {
 	case reflect.Ptr:
-		sprint(lines, prefix, dstType.Elem(), dstValue.Elem(), tag)
+		sprint(lines, prefix, obj.Elem(), tag)
 
 	case reflect.Struct:
-		sprintStruct(lines, prefix, dstType, dstValue, nil)
+		sprintStruct(lines, prefix, obj)
 
 	default:
-		*lines = append(*lines, printLine{prefix, dstValue.Interface(), tag})
+		*lines = append(*lines, printLine{prefix.String(), obj.Interface(), tag})
 	}
 }
 
-func sprintStruct(lines *[]printLine, prefix string, dstType reflect.Type, dstValue reflect.Value, tag *tag) {
-	fieldCount := dstType.NumField()
-	for i := 0; i < fieldCount; i++ {
-		field := dstType.Field(i)
-		tag := getTag(field)
-		val := dstValue.Field(i)
-
-		if val.CanInterface() {
+func sprintStruct(lines *[]printLine, prefix pathPrefix, obj *object) {
+	obj.IterateStruct(func(obj *object, tag tag) error {
+		if obj.IsReadable() {
 			if tag.PrintMode != printModeNone {
-				sprint(lines, prefix+"."+tag.PrintName, field.Type, val, &tag)
+				sprint(lines, prefix.Field(tag.PrintName), obj, &tag)
 			}
 		}
-	}
+		return nil
+	})
 }

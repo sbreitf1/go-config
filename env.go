@@ -5,65 +5,43 @@ import (
 	"os"
 	"reflect"
 	"strconv"
-	"strings"
-)
-
-const (
-	envSeparator = "_"
 )
 
 var (
 	lookupEnv = os.LookupEnv
-	boolMap   = make(map[string]bool)
 )
-
-func init() {
-	boolMap["true"] = true
-	boolMap["yes"] = true
-	boolMap["on"] = true
-	boolMap["t"] = true
-	boolMap["y"] = true
-	boolMap["1"] = true
-	boolMap["false"] = false
-	boolMap["no"] = false
-	boolMap["off"] = false
-	boolMap["f"] = false
-	boolMap["n"] = false
-	boolMap["0"] = false
-}
 
 // FromEnvironment reads all values from environment variables.
 func FromEnvironment(prefix string, conf interface{}) error {
-	t := reflect.TypeOf(conf)
-	v := reflect.ValueOf(conf)
-	if !v.CanSet() && !(v.Kind() == reflect.Ptr && v.Elem().CanSet()) {
+	dst := newObject(conf)
+	if !dst.IsAssignable() {
 		return fmt.Errorf("conf must be an assignable value")
 	}
-	return fromEnvironment(strings.ToUpper(prefix), t, v, nil)
+	return fromEnvironment(newPathPrefix(prefix), dst, nil)
 }
 
-func fromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value, tag *tag) error {
+func fromEnvironment(prefix pathPrefix, dst *object, tag *tag) error {
 	//TODO advanced types like time.Time and time.Duration
 	//TODO custom types with interfaces
 
-	switch dstType.Kind() {
+	switch dst.Kind() {
 	case reflect.Ptr:
-		return fromEnvironment(prefix, dstType.Elem(), dstValue.Elem(), tag)
+		return fromEnvironment(prefix, dst.Elem(), tag)
 
 	case reflect.Struct:
-		return structFromEnvironment(prefix, dstType, dstValue)
+		return structFromEnvironment(prefix, dst)
 
 	case reflect.Slice:
-		return sliceFromEnvironment(prefix, dstType, dstValue)
+		return sliceFromEnvironment(prefix, dst)
 	case reflect.Array:
-		return arrayFromEnvironment(prefix, dstType, dstValue)
+		return arrayFromEnvironment(prefix, dst)
 
 	case reflect.String:
-		return stringFromEnvironment(prefix, dstType, dstValue, tag)
+		return stringFromEnvironment(prefix, dst, tag)
 	case reflect.Bool:
-		return boolFromEnvironment(prefix, dstType, dstValue, tag)
+		return boolFromEnvironment(prefix, dst, tag)
 	case reflect.Int:
-		return intFromEnvironment(prefix, dstType, dstValue, tag)
+		return intFromEnvironment(prefix, dst, tag)
 
 	default:
 		// just ignore unsupported types
@@ -71,75 +49,55 @@ func fromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value
 	}
 }
 
-func structFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value) error {
-	fieldCount := dstType.NumField()
-	for i := 0; i < fieldCount; i++ {
-		field := dstType.Field(i)
-		tag := getTag(field)
-		val := dstValue.Field(i)
-
-		if val.CanSet() {
-			if err := fromEnvironment(prefix+envSeparator+strings.ToUpper(tag.EnvName), field.Type, dstValue.Field(i), &tag); err != nil {
-				return err
-			}
+func structFromEnvironment(prefix pathPrefix, dst *object) error {
+	return dst.IterateStruct(func(dst *object, tag tag) error {
+		if dst.IsAssignable() {
+			return fromEnvironment(prefix.Field2(tag.FieldName, tag.EnvName), dst, &tag)
 		}
-	}
-	return nil
+		return nil
+	})
 }
 
-func sliceFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value) error {
-	numStrVal, ok := lookupEnv(prefix + envSeparator + "NUM")
+func sliceFromEnvironment(prefix pathPrefix, dst *object) error {
+	numStrVal, ok := lookupEnv(prefix.Field("Num").Env())
 	if !ok || len(numStrVal) == 0 {
 		return nil
 	}
 
 	num, err := strconv.Atoi(numStrVal)
 	if err != nil {
-		return fmt.Errorf("failed to parse list length for %s", prefix)
+		return fmt.Errorf("%s: failed to parse list length from %q", prefix.String(), numStrVal)
 	}
 
-	dstValue.Set(reflect.MakeSlice(dstType, num, num))
-	for i := 0; i < num; i++ {
-		fromEnvironment(prefix+envSeparator+strconv.Itoa(i), dstValue.Index(i).Type(), dstValue.Index(i), nil)
-	}
-
-	return nil
+	dst.InitSlice(num)
+	return dst.IterateSlice(func(i int, dst *object) error {
+		return fromEnvironment(prefix.Index(i), dst, nil)
+	})
 }
 
-func arrayFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value) error {
-	len := dstValue.Len()
-	for i := 0; i < len; i++ {
-		fromEnvironment(prefix+envSeparator+strconv.Itoa(i), dstValue.Index(i).Type(), dstValue.Index(i), nil)
-	}
-
-	return nil
+func arrayFromEnvironment(prefix pathPrefix, dst *object) error {
+	return dst.IterateArray(func(i int, dst *object) error {
+		return fromEnvironment(prefix.Index(i), dst, nil)
+	})
 }
 
-func stringFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value, tag *tag) error {
-	if strVal, ok := fromEnvOrDefault(prefix, tag); ok {
-		dstValue.SetString(strVal)
-	}
-	return nil
+func stringFromEnvironment(prefix pathPrefix, dst *object, tag *tag) error {
+	return assignFromEnvOrDefault(prefix, dst.SetString, tag)
 }
 
-func boolFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value, tag *tag) error {
-	if strVal, ok := fromEnvOrDefault(prefix, tag); ok {
-		val, ok := boolMap[strVal]
-		if !ok {
-			return fmt.Errorf("cannot parse bool from %q", strVal)
+func boolFromEnvironment(prefix pathPrefix, dst *object, tag *tag) error {
+	return assignFromEnvOrDefault(prefix, dst.SetBoolFromString, tag)
+}
+
+func intFromEnvironment(prefix pathPrefix, dst *object, tag *tag) error {
+	return assignFromEnvOrDefault(prefix, dst.SetIntFromString, tag)
+}
+
+func assignFromEnvOrDefault(prefix pathPrefix, assignHandler func(string) error, tag *tag) error {
+	if strVal, ok := fromEnvOrDefault(prefix.Env(), tag); ok {
+		if err := assignHandler(strVal); err != nil {
+			return fmt.Errorf("%s: %s", prefix.String(), err.Error())
 		}
-		dstValue.SetBool(val)
-	}
-	return nil
-}
-
-func intFromEnvironment(prefix string, dstType reflect.Type, dstValue reflect.Value, tag *tag) error {
-	if strVal, ok := fromEnvOrDefault(prefix, tag); ok {
-		val, err := strconv.Atoi(strVal)
-		if err != nil {
-			return err
-		}
-		dstValue.SetInt(int64(val))
 	}
 	return nil
 }
