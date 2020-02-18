@@ -14,8 +14,10 @@ type TagTest struct {
 	Flags            interface{} `config:"required"`
 	EnvName          interface{} `config:"env:SomeNewName"`
 	NoPrint          interface{} `config:"print:-"`
+	LenPrint         interface{} `config:"print:[len]"`
 	MaskedPrint      interface{} `config:"print:[mask]"`
 	HashedPrint      interface{} `config:"print:[sha256]"`
+	LenPrintName     interface{} `config:"print:OtherName:[len]"`
 	MaskedPrintName  interface{} `config:"print:OtherName:[mask]"`
 	HashedPrintName  interface{} `config:"print:OtherName:[sha256]"`
 	PrintName        interface{} `config:"print:VisibleName"`
@@ -34,8 +36,10 @@ var tagTestCases = []tagTestCase{
 	tagTestCase{"Flags", tag{"Flags", true, printModeDefault, "Flags", "Flags", "", false}},
 	tagTestCase{"EnvName", tag{"EnvName", false, printModeDefault, "EnvName", "SomeNewName", "", false}},
 	tagTestCase{"NoPrint", tag{"NoPrint", false, printModeNone, "", "NoPrint", "", false}},
+	tagTestCase{"LenPrint", tag{"LenPrint", false, printModeLen, "LenPrint", "LenPrint", "", false}},
 	tagTestCase{"MaskedPrint", tag{"MaskedPrint", false, printModeMasked, "MaskedPrint", "MaskedPrint", "", false}},
 	tagTestCase{"HashedPrint", tag{"HashedPrint", false, printModeSHA256, "HashedPrint", "HashedPrint", "", false}},
+	tagTestCase{"LenPrintName", tag{"LenPrintName", false, printModeLen, "OtherName", "LenPrintName", "", false}},
 	tagTestCase{"MaskedPrintName", tag{"MaskedPrintName", false, printModeMasked, "OtherName", "MaskedPrintName", "", false}},
 	tagTestCase{"HashedPrintName", tag{"HashedPrintName", false, printModeSHA256, "OtherName", "HashedPrintName", "", false}},
 	tagTestCase{"PrintName", tag{"PrintName", false, printModeDefault, "VisibleName", "PrintName", "", false}},

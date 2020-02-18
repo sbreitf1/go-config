@@ -13,6 +13,8 @@ const (
 	printModeLen     printMode = "len"
 	printModeMasked  printMode = "masked"
 	printModeSHA256  printMode = "sha256"
+	//TODO printModeKey to print out map keys as if they are actual struct fields
+	//TODO printModeEscape to print out in "" with escape sequences
 )
 
 type printMode string
