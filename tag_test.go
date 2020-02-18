@@ -23,6 +23,7 @@ type TagTest struct {
 	PrintName        interface{} `config:"print:VisibleName"`
 	Default          interface{} `config:"default:some str"`
 	DefaultWithColon interface{} `config:"default:some:nice:str"`
+	FieldName        interface{} `config:"env:Bar,print:Bar,name:Foo"`
 }
 
 type tagTestCase struct {
@@ -45,6 +46,7 @@ var tagTestCases = []tagTestCase{
 	tagTestCase{"PrintName", tag{"PrintName", false, printModeDefault, "VisibleName", "PrintName", "", false}},
 	tagTestCase{"Default", tag{"Default", false, printModeDefault, "Default", "Default", "some str", true}},
 	tagTestCase{"DefaultWithColon", tag{"DefaultWithColon", false, printModeDefault, "DefaultWithColon", "DefaultWithColon", "some:nice:str", true}},
+	tagTestCase{"FieldName", tag{"Foo", false, printModeDefault, "Bar", "Bar", "", false}},
 }
 
 func TestTags(t *testing.T) {

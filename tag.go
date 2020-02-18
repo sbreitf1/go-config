@@ -27,44 +27,61 @@ func getTag(field reflect.StructField) tag {
 
 	tagStr := field.Tag.Get("config")
 	if len(tagStr) > 0 {
-		options := strings.Split(tagStr, ",")
-		for _, part := range options {
-			switch part {
-			case "required":
-				tag.Required = true
-
-			default:
-				parts := strings.Split(part, ":")
-
-				if len(parts) >= 2 {
-					switch parts[0] {
-					case "env":
-						tag.EnvName = parts[1]
-						continue
-
-					case "print":
-						if setPrintOptions(parts, &tag) {
-							continue
-						}
-
-					case "default":
-						tag.Default = strings.Join(parts[1:], ":")
-						tag.HasDefault = true
-						continue
-					}
-				}
-
-				panic(fmt.Sprintf("cannot parse config tag from %q", tagStr))
+		options := make(map[string][]string)
+		for _, val := range strings.Split(tagStr, ",") {
+			parts := strings.Split(val, ":")
+			opt := parts[0]
+			//TODO deny unknown config options
+			if _, ok := options[opt]; ok {
+				panic(fmt.Sprintf("config option %q specified multiple times", opt))
 			}
+			options[opt] = parts[1:]
+		}
+
+		if args, ok := options["required"]; ok {
+			if len(args) != 0 {
+				panic("config option \"required\" does not support any arguments")
+			}
+			tag.Required = true
+		}
+
+		if args, ok := options["name"]; ok {
+			if len(args) != 1 {
+				panic("config option \"name\" requires exactly one argument")
+			}
+			// needs to be evaluated before all other names to prevent overrides
+			tag.FieldName = args[0]
+			tag.EnvName = args[0]
+			tag.PrintName = args[0]
+		}
+
+		if args, ok := options["env"]; ok {
+			if len(args) != 1 {
+				panic("config option \"env\" requires exactly one argument")
+			}
+			tag.EnvName = args[0]
+		}
+
+		if args, ok := options["print"]; ok {
+			setPrintOptions(args, &tag)
+		}
+
+		if args, ok := options["default"]; ok {
+			tag.Default = strings.Join(args, ":")
+			tag.HasDefault = true
 		}
 	}
 
 	return tag
 }
 
-func setPrintOptions(parts []string, tag *tag) bool {
-	if len(parts) == 2 {
-		switch parts[1] {
+func setPrintOptions(args []string, tag *tag) {
+	if len(args) == 0 {
+		panic("config option \"print\" requires at least one argument")
+	}
+
+	if len(args) == 1 {
+		switch args[0] {
 		case "-":
 			tag.PrintMode = printModeNone
 			tag.PrintName = ""
@@ -79,27 +96,28 @@ func setPrintOptions(parts []string, tag *tag) bool {
 			tag.PrintMode = printModeSHA256
 
 		default:
-			tag.PrintName = parts[1]
+			tag.PrintName = args[0]
 		}
-		return true
+		return
 	}
 
-	if len(parts) == 3 {
-		tag.PrintName = parts[1]
-		switch parts[2] {
+	if len(args) == 2 {
+		tag.PrintName = args[0]
+		switch args[1] {
 		case "[len]":
 			tag.PrintMode = printModeLen
-			return true
+			return
 
 		case "[mask]":
 			tag.PrintMode = printModeMasked
-			return true
+			return
 
 		case "[sha256]":
 			tag.PrintMode = printModeSHA256
-			return true
+			return
 		}
+		panic("")
 	}
 
-	return false
+	panic("too many arguments for config option \"print\"")
 }
