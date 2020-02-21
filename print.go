@@ -9,7 +9,8 @@ import (
 
 const (
 	printModeDefault printMode = ""
-	printModeNone    printMode = "none"
+	printModeNone    printMode = "-"
+	printModeNonZero printMode = "nonzero"
 	printModeLen     printMode = "len"
 	printModeMasked  printMode = "masked"
 	printModeSHA256  printMode = "sha256"
@@ -29,6 +30,12 @@ type printLine struct {
 func (l printLine) PrintVisible() (string, bool) {
 	switch l.Mode {
 	case printModeDefault:
+		return fmt.Sprintf("%v", l.Value), true
+
+	case printModeNonZero:
+		if reflect.ValueOf(l.Value).IsZero() {
+			return "", false
+		}
 		return fmt.Sprintf("%v", l.Value), true
 
 	case printModeLen:

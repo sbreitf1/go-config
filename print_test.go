@@ -86,6 +86,18 @@ func TestToStringArray(t *testing.T) {
 	assert.Equal(t, "Stuff.List[0]: foo\nStuff.List[1]: bar", ToString("Stuff", conf))
 }
 
+type PrintTestNonZero struct {
+	Str     string `config:"print:[nonzero]"`
+	StrZero string `config:"print:[nonzero]"`
+	Int     int    `config:"print:[nonzero]"`
+	IntZero int    `config:"print:[nonzero]"`
+}
+
+func TestToStringNonZero(t *testing.T) {
+	conf := PrintTestNonZero{"foobar", "", 42, 0}
+	assert.Equal(t, "Stuff.Str: foobar\nStuff.Int: 42", ToString("Stuff", conf))
+}
+
 type PrintTestLen struct {
 	Str   string `config:"print:[len]"`
 	Slice []int  `config:"print:[len]"`

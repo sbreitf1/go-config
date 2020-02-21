@@ -86,6 +86,10 @@ func setPrintOptions(args []string, tag *tag) {
 			tag.PrintMode = printModeNone
 			tag.PrintName = ""
 
+		case "[nonzero]":
+			tag.PrintMode = printModeNonZero
+			return
+
 		case "[len]":
 			tag.PrintMode = printModeLen
 
@@ -104,6 +108,10 @@ func setPrintOptions(args []string, tag *tag) {
 	if len(args) == 2 {
 		tag.PrintName = args[0]
 		switch args[1] {
+		case "[nonzero]":
+			tag.PrintMode = printModeNonZero
+			return
+
 		case "[len]":
 			tag.PrintMode = printModeLen
 			return
@@ -116,7 +124,7 @@ func setPrintOptions(args []string, tag *tag) {
 			tag.PrintMode = printModeSHA256
 			return
 		}
-		panic("")
+		panic(fmt.Sprintf("unknown print mode %q", args[1]))
 	}
 
 	panic("too many arguments for config option \"print\"")
