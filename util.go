@@ -67,6 +67,9 @@ func (p pathPrefix) Index(index int) pathPrefix {
 }
 
 func newPathPrefix(firstField string) pathPrefix {
+	if len(firstField) == 0 {
+		return []interface{}{}
+	}
 	return []interface{}{fieldName{firstField, firstField}}
 }
 
@@ -134,20 +137,6 @@ func (obj *object) Interface() interface{} {
 	return obj.v.Interface()
 }
 
-func (obj *object) IterateArray(f func(i int, obj *object) error) error {
-	len := obj.v.Len()
-	for i := 0; i < len; i++ {
-		if err := f(i, obj.Index(i)); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (obj *object) IterateSlice(f func(i int, obj *object) error) error {
-	return obj.IterateArray(f)
-}
-
 func (obj *object) IterateStruct(f func(obj *object, tag tag) error) error {
 	fieldCount := obj.t.NumField()
 	for i := 0; i < fieldCount; i++ {
@@ -162,6 +151,20 @@ func (obj *object) IterateStruct(f func(obj *object, tag tag) error) error {
 	return nil
 }
 
+func (obj *object) IterateArray(f func(i int, obj *object) error) error {
+	len := obj.v.Len()
+	for i := 0; i < len; i++ {
+		if err := f(i, obj.Index(i)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (obj *object) IterateSlice(f func(i int, obj *object) error) error {
+	return obj.IterateArray(f)
+}
+
 func (obj *object) InitSlice(len int) {
 	obj.v.Set(reflect.MakeSlice(obj.t, len, len))
 }
@@ -171,12 +174,21 @@ func (obj *object) SetString(val string) error {
 	return nil
 }
 
+func (obj *object) SetBool(val bool) error {
+	obj.v.SetBool(val)
+	return nil
+}
+
 func (obj *object) SetBoolFromString(strVal string) error {
 	val, ok := boolMap[strVal]
 	if !ok {
 		return fmt.Errorf("cannot parse bool from %q", strVal)
 	}
-	obj.v.SetBool(val)
+	return obj.SetBool(val)
+}
+
+func (obj *object) SetInt(val int) error {
+	obj.v.SetInt(int64(val))
 	return nil
 }
 
@@ -185,8 +197,7 @@ func (obj *object) SetIntFromString(strVal string) error {
 	if err != nil {
 		return fmt.Errorf("cannot parse int from %q", strVal)
 	}
-	obj.v.SetInt(int64(val))
-	return nil
+	return obj.SetInt(val)
 }
 
 func (obj *object) SetDateTimeFromString(strVal string) error {

@@ -25,7 +25,6 @@ func FromEnvironment(prefix string, conf interface{}) error {
 }
 
 func fromEnvironment(prefix pathPrefix, dst *object, tag *tag) error {
-	//TODO advanced types like time.Time and time.Duration
 	//TODO custom types with interfaces
 
 	if dst.Is(typeDateTime) {
