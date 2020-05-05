@@ -102,6 +102,11 @@ func sprint(lines *[]printLine, prefix pathPrefix, obj *object, mode printMode, 
 		return
 	}
 
+	if stringer, ok := obj.Interface().(fmt.Stringer); ok {
+		*lines = append(*lines, printLine{prefix.String(), stringer, mode, tag})
+		return
+	}
+
 	switch obj.Kind() {
 	case reflect.Ptr:
 		if !obj.IsNil() {

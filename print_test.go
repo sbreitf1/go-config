@@ -2,6 +2,7 @@ package config
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -119,4 +120,17 @@ type PrintTestMasked struct {
 func TestToStringMasked(t *testing.T) {
 	conf := PrintTestMasked{"", "some test string", 0, 42}
 	assert.Equal(t, "Stuff.Str: ******\nStuff.Int: ******", ToString("Stuff", conf))
+}
+
+type PrintTestTime struct {
+	Time     time.Time
+	Duration time.Duration
+}
+
+func TestToStringTime(t *testing.T) {
+	conf := PrintTestTime{
+		time.Date(2020, time.May, 5, 13, 49, 44, 0, time.UTC),
+		2*time.Hour + 15*time.Minute,
+	}
+	assert.Equal(t, "Stuff.Time:     2020-05-05 13:49:44 +0000 UTC\nStuff.Duration: 2h15m0s", ToString("Stuff", conf))
 }

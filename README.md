@@ -90,7 +90,7 @@ Values of type `time.Duration` can be initialized by an [ISO 8601 Duration Strin
 
 ```golang
 // Environment:
-//   MAIN = "1y 4d 13m 5s"  (required for slice initialization)
+//   MAIN = "1y 4d 13m 5s"  (easy to read duration format)
 //   MAIN = "P1Y4DT13M5S"   (same duration in ISO 8601 format)
 
 // you do not need to encapsulate all values in structs
@@ -126,7 +126,7 @@ type Config struct {
     // User is printed out as {PREFIX}.User
     User string
     // Pass is not printed out at all
-    Pass string `config:"print:[none]"`
+    Pass string `config:"print:-"`
     // PhoneNumber will print out "******" as {PREFIX}.Phone when it is not empty.
     PhoneNumber string `config:"print:Phone:[mask]"`
     // Children is printed out as {PREFIX}.Children containing only the number of elements.
