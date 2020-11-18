@@ -68,23 +68,12 @@ func ToString(prefix string, conf interface{}) string {
 
 // ToLines returns a line for every configuration value with equal indentation of all values.
 func ToLines(prefix string, conf interface{}) []string {
-	lines := make([]printLine, 0)
-	sprint(&lines, newPathPrefix(prefix), newObject(conf), printModeDefault, nil)
-
-	type entry struct {
-		Key   string
-		Value string
-	}
-
-	entries := make([]entry, 0)
+	entries := ToList(prefix, conf)
 
 	maxKeyLen := 0
-	for _, l := range lines {
-		if visibleString, ok := l.PrintVisible(); ok {
-			if len(l.Key) > maxKeyLen {
-				maxKeyLen = len(l.Key)
-			}
-			entries = append(entries, entry{l.Key, visibleString})
+	for _, e := range entries {
+		if len(e.Key) > maxKeyLen {
+			maxKeyLen = len(e.Key)
 		}
 	}
 
@@ -93,6 +82,27 @@ func ToLines(prefix string, conf interface{}) []string {
 		strLines[i] = fmt.Sprintf("%s:%s%s", e.Key, strings.Repeat(" ", maxKeyLen-len(e.Key)+1), e.Value)
 	}
 	return strLines
+}
+
+// NamedValue represents a named config value.
+type NamedValue struct {
+	Key, Value string
+}
+
+// ToList returns a structured output identical to ToLines.
+func ToList(prefix string, conf interface{}) []NamedValue {
+	lines := make([]printLine, 0)
+	sprint(&lines, newPathPrefix(prefix), newObject(conf), printModeDefault, nil)
+
+	entries := make([]NamedValue, 0)
+
+	for _, l := range lines {
+		if visibleString, ok := l.PrintVisible(); ok {
+			entries = append(entries, NamedValue{l.Key, visibleString})
+		}
+	}
+
+	return entries
 }
 
 func sprint(lines *[]printLine, prefix pathPrefix, obj *object, mode printMode, tag *tag) {
