@@ -200,7 +200,7 @@ func TestEnvSlice(t *testing.T) {
 		if assert.NoError(t, FromEnvironment("test", &conf)) {
 			assert.Equal(t, []int{}, conf.EmptyList)
 			assert.Equal(t, []string{"foo", "bar", "42"}, conf.List)
-			assert.Equal(t, []EnvTestSimple{EnvTestSimple{"foobar", 42, true, false}}, conf.NestedList)
+			assert.Equal(t, []EnvTestSimple{{"foobar", 42, true, false}}, conf.NestedList)
 		}
 	})
 }

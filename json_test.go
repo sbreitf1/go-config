@@ -75,3 +75,20 @@ func TestFromJSONTag(t *testing.T) {
 		assert.False(t, conf.BoolDataF)
 	}
 }
+
+type JSONTestName struct {
+	StringData string `config:"name:str"`
+	IntData    int    `config:"name:number"`
+	BoolDataT  bool   `config:"name:yup"`
+	BoolDataF  bool
+}
+
+func TestFromJSONName(t *testing.T) {
+	var conf JSONTestName
+	if assert.NoError(t, FromJSON([]byte(`{"str":"foobar","IntData":42,"yup":true,"BoolDataF":false}`), &conf)) {
+		assert.Equal(t, "foobar", conf.StringData)
+		assert.Equal(t, 0, conf.IntData)
+		assert.True(t, conf.BoolDataT)
+		assert.False(t, conf.BoolDataF)
+	}
+}

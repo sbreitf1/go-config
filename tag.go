@@ -12,6 +12,7 @@ type tag struct {
 	PrintMode  printMode
 	PrintName  string
 	EnvName    string
+	JSONName   string
 	Default    string
 	HasDefault bool
 }
@@ -23,6 +24,7 @@ func getTag(field reflect.StructField) tag {
 		PrintMode: printModeDefault,
 		PrintName: field.Name,
 		EnvName:   field.Name,
+		JSONName:  field.Name,
 	}
 
 	tagStr := field.Tag.Get("config")
@@ -53,6 +55,7 @@ func getTag(field reflect.StructField) tag {
 			tag.FieldName = args[0]
 			tag.EnvName = args[0]
 			tag.PrintName = args[0]
+			tag.JSONName = args[0]
 		}
 
 		if args, ok := options["env"]; ok {
