@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type JSONTestSimple struct {
@@ -91,4 +92,36 @@ func TestFromJSONName(t *testing.T) {
 		assert.True(t, conf.BoolDataT)
 		assert.False(t, conf.BoolDataF)
 	}
+}
+
+type JSONTestSlice struct {
+	SliceData1 []string
+	SliceData2 []string
+	SliceData3 []string
+	SliceData4 []string
+	SliceData5 []string
+}
+
+func TestFromJSONSlice(t *testing.T) {
+	var conf JSONTestSlice
+	require.NoError(t, FromJSON([]byte(`{"SliceData2":null,"SliceData3":[],"SliceData4":["foo"],"SliceData5":["bar","test","42"]}`), &conf))
+	require.Nil(t, conf.SliceData1)
+	require.Nil(t, conf.SliceData2)
+	require.Equal(t, []string{}, conf.SliceData3)
+	require.Equal(t, []string{"foo"}, conf.SliceData4)
+	require.Equal(t, []string{"bar", "test", "42"}, conf.SliceData5)
+}
+
+type JSONTestArray struct {
+	ArrayData1 [0]string
+	ArrayData2 [1]string
+	ArrayData3 [2]string
+}
+
+func TestFromJSONArray(t *testing.T) {
+	var conf JSONTestArray
+	require.NoError(t, FromJSON([]byte(`{"ArrayData1":[],"ArrayData2":["foo"],"ArrayData3":["bar","42"]}`), &conf))
+	require.Equal(t, [0]string{}, conf.ArrayData1)
+	require.Equal(t, [1]string{"foo"}, conf.ArrayData2)
+	require.Equal(t, [2]string{"bar", "42"}, conf.ArrayData3)
 }

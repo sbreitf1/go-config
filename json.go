@@ -37,6 +37,14 @@ func FromJSON(data []byte, conf interface{}) error {
 }
 
 func fromJSON(obj interface{}, prefix pathPrefix, dst *object, tag *tag) error {
+	if obj == nil {
+		if !dst.v.CanAddr() {
+			return fmt.Errorf("%s: cannot assign null to type %T", prefix.String(), dst.Interface())
+		}
+		dst.v.Set(reflect.New(dst.t).Elem())
+		return nil
+	}
+
 	//TODO custom types with interfaces
 
 	if dst.Is(typeDateTime) {
@@ -53,10 +61,10 @@ func fromJSON(obj interface{}, prefix pathPrefix, dst *object, tag *tag) error {
 	case reflect.Struct:
 		return structFromJSON(obj, prefix, dst)
 
-	/*case reflect.Slice:
-		return sliceFromEnvironment(prefix, dst)
+	case reflect.Slice:
+		return sliceFromJSON(obj, prefix, dst)
 	case reflect.Array:
-		return arrayFromEnvironment(prefix, dst)*/
+		return arrayFromJSON(obj, prefix, dst)
 
 	case reflect.String:
 		return stringFromJSON(obj, prefix, dst, tag)
@@ -111,29 +119,46 @@ func structFromJSON(obj interface{}, prefix pathPrefix, dst *object) error {
 	return nil
 }
 
-/*func sliceFromEnvironment(prefix pathPrefix, dst *object) error {
-	numStrVal, ok := lookupEnv(prefix.Field("Num").Env())
-	if !ok || len(numStrVal) == 0 {
-		return nil
+func sliceFromJSON(obj interface{}, prefix pathPrefix, dst *object) error {
+	t := reflect.TypeOf(obj)
+	if t.Kind() != reflect.Slice {
+		return fmt.Errorf("%s: cannot parse slice from type %T", prefix.String(), obj)
 	}
 
-	num, err := strconv.Atoi(numStrVal)
-	if err != nil {
-		return fmt.Errorf("%s: failed to parse list length from %q", prefix.String(), numStrVal)
+	v := reflect.ValueOf(obj)
+	itemCount := v.Len()
+
+	dst.InitSlice(itemCount)
+	for i := 0; i < itemCount; i++ {
+		val := dst.v.Index(i)
+		if err := fromJSON(v.Index(i).Interface(), prefix.Index(i), &object{val.Type(), val}, nil); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func arrayFromJSON(obj interface{}, prefix pathPrefix, dst *object) error {
+	t := reflect.TypeOf(obj)
+	if t.Kind() != reflect.Slice {
+		return fmt.Errorf("%s: cannot parse array from type %T", prefix.String(), obj)
 	}
 
-	dst.InitSlice(num)
-	return dst.IterateSlice(func(i int, dst *object) error {
-		return fromEnvironment(prefix.Index(i), dst, nil)
-	})
-}
+	v := reflect.ValueOf(obj)
+	itemCount := v.Len()
 
-func arrayFromEnvironment(prefix pathPrefix, dst *object) error {
-	return dst.IterateArray(func(i int, dst *object) error {
-		return fromEnvironment(prefix.Index(i), dst, nil)
-	})
+	if itemCount != dst.Len() {
+		return fmt.Errorf("%s: expected %d array items, but got %d", prefix.String(), dst.Len(), itemCount)
+	}
+
+	for i := 0; i < itemCount; i++ {
+		val := dst.v.Index(i)
+		if err := fromJSON(v.Index(i).Interface(), prefix.Index(i), &object{val.Type(), val}, nil); err != nil {
+			return err
+		}
+	}
+	return nil
 }
-*/
 
 func stringFromJSON(obj interface{}, prefix pathPrefix, dst *object, tag *tag) error {
 	return dst.SetString(obj.(string))
