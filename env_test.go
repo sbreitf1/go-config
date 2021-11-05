@@ -150,6 +150,30 @@ func TestEnvNested(t *testing.T) {
 	})
 }
 
+type EnvTestPointer struct {
+	PtrString *string
+	PtrValue  *EnvTestSimple
+}
+
+func TestEnvPointer(t *testing.T) {
+	withMockEnv(func(env map[string]string) {
+		env["TEST_PTRSTRING"] = "test"
+		env["TEST_PTRVALUE_STRINGDATA"] = "foobar"
+		env["TEST_PTRVALUE_INTDATA"] = "42"
+		env["TEST_PTRVALUE_BOOLDATAT"] = "true"
+		env["TEST_PTRVALUE_BOOLDATAF"] = "false"
+
+		var conf EnvTestPointer
+		if assert.NoError(t, FromEnvironment("test", &conf)) {
+			assert.Equal(t, "test", *conf.PtrString)
+			assert.Equal(t, "foobar", conf.PtrValue.StringData)
+			assert.Equal(t, 42, conf.PtrValue.IntData)
+			assert.True(t, conf.PtrValue.BoolDataT)
+			assert.False(t, conf.PtrValue.BoolDataF)
+		}
+	})
+}
+
 type EnvTestName struct {
 	StringData string        `config:"env:str"`
 	IntData    int           `config:"env:number"`

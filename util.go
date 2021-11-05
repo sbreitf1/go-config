@@ -242,7 +242,7 @@ func (obj *object) SetDurationFromString(strVal string) error {
 		periodMode := false
 		lastNum := -1
 
-		pattern := regexp.MustCompile("[0-9]+|[^0-9\\s]")
+		pattern := regexp.MustCompile(`[0-9]+|[^0-9\s]`)
 		tokens := pattern.FindAllString(strVal, -1)
 
 		for _, token := range tokens {

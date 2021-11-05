@@ -36,6 +36,9 @@ func fromEnvironment(prefix pathPrefix, dst *object, tag *tag) error {
 
 	switch dst.Kind() {
 	case reflect.Ptr:
+		if dst.v.IsNil() && dst.v.CanSet() {
+			dst.v.Set(reflect.New(dst.t.Elem()))
+		}
 		return fromEnvironment(prefix, dst.Elem(), tag)
 
 	case reflect.Struct:
